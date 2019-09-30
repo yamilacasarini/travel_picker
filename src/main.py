@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import GridSearchCV
 
 dataUrl = "./resources/setInicial.csv"
 
@@ -26,7 +27,7 @@ x.ciudad_destino_anterior_compra = le.fit_transform(np.ravel(x.ciudad_destino_an
 x.frecuencia_viajes_x_anio = le.fit_transform(np.ravel(x.frecuencia_viajes_x_anio))
 x.ingresos_a_la_pagina_x_anio = le.fit_transform(np.ravel(x.ingresos_a_la_pagina_x_anio))
 
-X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.005)
+X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.02)
 
 scaler = StandardScaler()
 scaler.fit(X_train)
@@ -34,14 +35,33 @@ scaler.fit(X_train)
 X_train = scaler.transform(X_train)
 X_test = scaler.transform(X_test)
 
-mlp = MLPClassifier(hidden_layer_sizes=(10, 10, 10), max_iter=10000)
+mlp = MLPClassifier(max_iter=100000)
 
-mlp.fit(X_test, y_test)
+# mlp.fit(X_test, y_test)
 
-predictions = mlp.predict(X_test)
+# predictions = mlp.predict(X_test)
 
-print(confusion_matrix(y_test, predictions))
-print(classification_report(y_test, predictions))
+
+parameter_space = {
+    'hidden_layer_sizes': [(50,50,50), (50,100,50), (100,),(10,10,10)],
+    'activation': ['tanh', 'relu'],
+    'solver': ['sgd', 'adam'],
+    'alpha': [0.0001, 0.05],
+    'learning_rate': ['constant','adaptive'],
+}
+
+clf = GridSearchCV(mlp, parameter_space, n_jobs=-1, cv=3)
+clf.fit(X_test, y_test)
+
+# All results
+means = clf.cv_results_['mean_test_score']
+stds = clf.cv_results_['std_test_score']
+for mean, std, params in zip(means, stds, clf.cv_results_['params']):
+    print("%0.3f (+/-%0.03f) for %r" % (mean, std * 2, params))
+
+
+# print(confusion_matrix(y_test, predictions))
+# print(classification_report(y_test, predictions))
 
 
 
